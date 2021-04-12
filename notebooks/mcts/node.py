@@ -1,21 +1,11 @@
-"""
-    Enforcing the generic type rules here is turning out to be far harder than I 
-    expected.
-    
-    I want Node to be templated on a State type, 
-    and I want State to be required to define a Command type.
-    
-    I'm actually not sure that this is possible
-    
-    What if Node only knows about State, not about Command?
-"""
-
 import time
 from typing import Optional, List, Protocol, Any, Dict, TypeVar, Generic
 from math import sqrt, log
 import random
 
 from .common import Result, Player, other_player
+
+Command = Any
 
 
 class StateProtocol(Protocol):
@@ -25,7 +15,7 @@ class StateProtocol(Protocol):
     way of aquiring a new state by applying a command
     """
 
-    def apply(self, command: Any) -> "StateProtocol":
+    def apply(self, command: Command) -> "StateProtocol":
         ...
 
     player: Player
@@ -46,16 +36,12 @@ class Node(Generic[StateType]):
 
     def __init__(self, state: StateType) -> None:
         self.state = state
-        self.children: Dict[Any, Node] = {}
+        self.children: Dict[Command, Node] = {}
         self.playouts = 0
         self.wins = 0.0
 
     def __repr__(self) -> str:
-        ratio = self.ratio
-        if ratio is not None:
-            ratio = round(ratio, 2)
-
-        return f"Node(depth={self.depth},wins={self.wins},playouts={self.playouts}, ratio={ratio}, children={len(self.children)})"
+        return f"Node{type(self.state)}(playouts={self.playouts}, ratio={round(self.ratio,3)})"
 
     @property
     def is_leaf(self) -> bool:
@@ -68,17 +54,6 @@ class Node(Generic[StateType]):
         assert all(child.playouts > 0 for child in self.children.values())
 
         return False
-
-    @property
-    def size(self) -> int:
-        return 1 + sum(child.size for command, child in self.children.items())
-
-    @property
-    def depth(self) -> int:
-        "It would be better to compute this once during backprop"
-        return 1 + max(
-            (child.depth for command, child in self.children.items()), default=0
-        )
 
     @property
     def ratio(self) -> float:
@@ -113,6 +88,8 @@ class Node(Generic[StateType]):
     def expand(self) -> "Node":
         "create a new child state from this node"
 
+        if self.state.result != Result.INPROGRESS:
+            print(self.state)
         assert self.state.result == Result.INPROGRESS
         assert len(self.state.commands) > 0
         assert self.is_leaf
@@ -129,7 +106,7 @@ class Node(Generic[StateType]):
 
         return child
 
-    def best(self) -> Any:
+    def best(self) -> Command:
         """
         Wikipedia says
         "the move with the most simulations made (i.e. the highest denominator)
@@ -139,6 +116,20 @@ class Node(Generic[StateType]):
         commands = self.children.keys()
         return max(commands, key=lambda command: self.children[command].playouts)
 
+    def best_line(self) -> List:
+        if len(self.children):
+            best = self.best()
+            return [best] + self.children[best].best_line()
+        else:
+            return []
+    
+    def best_line2(self)->List["Node"]:
+        if len(self.children):
+            best=self.best()
+            return [self] + self.children[best].best_line2()
+        else:
+            return [self]
+    
     def uct_score(self, parent_playouts: int) -> float:
         """
         UCT is 'Upper Confidence Bound Applied to Trees'.
@@ -206,6 +197,7 @@ def select(node: Node) -> List[Node]:
 
 
 def mcts(root: Node) -> None:
+    assert root.state.result == Result.INPROGRESS
     path = select(root)
     path = expand(path)
     result = playout(path[-1])
