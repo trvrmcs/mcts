@@ -6,15 +6,7 @@ from collections import Counter
 from dataclasses import dataclass
 
 
-from .common import Result, Player, other_player
-
-
-class Illegal(Exception):
-    pass
-
-
-class GameOver(Exception):
-    pass
+from .common import Result, Player, other_player, Illegal, GameOver
 
 
 SIZE = 3
@@ -53,6 +45,9 @@ class Command:
     def __post_init__(self):
         assert 0 <= self.i < SIZE, f"i must be between 0 and {SIZE-1}"
         assert 0 <= self.j < SIZE, f"j must be between 0 and {SIZE-1}"
+
+    def __repr__(self) -> str:
+        return f"({self.i},{self.j})"
 
 
 # State classes should be treated as immutable
