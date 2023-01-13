@@ -2,22 +2,9 @@ import time
 from .node import Node, mcts
 from .common import Result
 from . import tictactoe
-from .tictactoe import State, Command
 
-
-def get_command(state) -> Command:
-    while True:
-        try:
-            s = input("COMMAND (x,y)> ")
-            x, y = s.strip().split(" ")
-            command = Command(int(y) - 1, int(x) - 1)
-        except Exception as e:
-            print(f"Couldn't parse command: {e}")
-            continue
-        if command in state.commands:
-            return command
-        else:
-            print("Illegal command")
+# from .tictactoe import State, Command, get_command
+from .connect4 import State, Command, get_command
 
 
 def apply_command(root: Node, command: Command) -> Node:
@@ -37,20 +24,24 @@ def apply_command(root: Node, command: Command) -> Node:
 
 def pick_move(root: Node, seconds: float) -> Command:
     print("Computer thinking...")
-    end = time.time() + seconds
-    while time.time() < end:
+    start = time.time()
+
+    N = 1000
+
+    for i in range(N):
         mcts(root)
 
-    print(root)
+    duration = time.time() - start
 
+    print(f"Ran {N} playouts in {duration} seconds")
     print("Best line:", root.best_line())
     return root.best()
 
 
 def main() -> None:
 
-    s = tictactoe.State()
-    root: Node[tictactoe.State] = Node(s)
+    s = State()
+    root: Node[State] = Node(s)
 
     print(root.state)
     print("")

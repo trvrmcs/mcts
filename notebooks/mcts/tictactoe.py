@@ -101,3 +101,18 @@ class State:
         v = {Player.ONE: 1, Player.TWO: -1}[self.player]
         m[command.j, command.i] = v
         return State(m, other_player(self.player))
+
+
+def get_command(state: State) -> Command:
+    while True:
+        try:
+            s = input("COMMAND (x,y)> ")
+            x, y = s.strip().split(" ")
+            command = Command(int(y), int(x))
+        except Exception as e:
+            print(f"Couldn't parse command: {e}")
+            continue
+        if command in state.commands:
+            return command
+        else:
+            print("Illegal command")

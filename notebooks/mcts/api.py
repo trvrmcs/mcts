@@ -6,7 +6,7 @@ import functools
 import asyncio
 import concurrent.futures
 import json
-from fastapi import FastAPI, WebSocket,  WebSocketDisconnect 
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 import time
 from enum import Enum
@@ -82,6 +82,7 @@ class TicTacToeGame:
     def __init__(self) -> None:
 
         self.node = Node(tictactoe.State())
+        self.notes = ""
 
     def __json__(self):
         state = self.node.state
@@ -95,6 +96,7 @@ class TicTacToeGame:
             ],
             "name": "tictactoe",
             "size": tictactoe.SIZE,
+            "notes": self.notes,
         }
 
 
@@ -102,12 +104,14 @@ class TicTacToeGame:
 class Connect4Game:
     def __init__(self) -> None:
         self.node = Node(connect4.State())
+        self.notes = ""
 
     def __json__(self):
         return {
             "player": self.node.state.player,
             "result": self.node.state.result,
             "name": "connect4",
+            "notes": self.notes,
             "board": [
                 [{0: "empty", -1: "X", +1: "O"}[cell] for cell in row]
                 for row in self.node.state._m
@@ -151,7 +155,7 @@ async def handle_connect4_move(ws: WebSocket, column: int) -> None:
         return
 
     if game.node.state.player != Player.ONE:
-        return 
+        return
     command = connect4.Command(column=column)
     if command not in game.node.state.commands:
         return
@@ -160,7 +164,7 @@ async def handle_connect4_move(ws: WebSocket, column: int) -> None:
 
     await ractive_set(ws, "current_game", game)
     if game.node.state.result == Result.INPROGRESS:
-        task = asyncio.create_task(pick_move(ws, game, 1.5))
+        task = asyncio.create_task(pick_move(ws, game, 1.0))
 
 
 @handle("tictactoe_move")
@@ -194,7 +198,7 @@ async def pick_move(
 
     end = time.time() + seconds
     # very little thread safety here!
-    #print(f"Before thinking: {game.node}")
+    # print(f"Before thinking: {game.node}")
 
     def think() -> None:
         while time.time() < end:
@@ -204,18 +208,21 @@ async def pick_move(
     await loop.run_in_executor(None, think)
     assert game.node.state.player == Player.TWO
 
-    #print(f"{game.node.playouts} positions examined")
+    # print(f"{game.node.playouts} positions examined")
     print(game.node)
     # print(game.node.best_line())
     best = game.node.best()
 
+    notes = f"Ran {game.node.playouts} playouts in {seconds} seconds"
+
     game.node = apply_command(game.node, best)
 
+    game.notes = notes
+
     # print(f"I think I have roughly a {round(100*game.node.ratio)} % chance of winning now")
-    # 
+    #
     print("best line:", ",".join(repr(command) for command in game.node.best_line()))
-    
-    
+
     await ractive_set(ws, "current_game", game)
 
 
@@ -240,8 +247,8 @@ async def websocket_endpoint(ws: WebSocket) -> None:
                     await func(ws, *args)
                 except Exception as e:
                     print(e)
-                    
+
                     await notify(ws, f"Error calling {name}: {e}", "warning")
     except WebSocketDisconnect:
-        print('disconnect')
+        print("disconnect")
         pass

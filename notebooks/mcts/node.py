@@ -122,14 +122,14 @@ class Node(Generic[StateType]):
             return [best] + self.children[best].best_line()
         else:
             return []
-    
-    def best_line2(self)->List["Node"]:
+
+    def best_line2(self) -> List["Node"]:
         if len(self.children):
-            best=self.best()
+            best = self.best()
             return [self] + self.children[best].best_line2()
         else:
             return [self]
-    
+
     def uct_score(self, parent_playouts: int) -> float:
         """
         UCT is 'Upper Confidence Bound Applied to Trees'.
@@ -175,7 +175,7 @@ def backprop(path: List[Node], result: Result) -> None:
         update_node(node, result)
 
 
-def playout(node) -> Result:
+def playout(node: Node) -> Result:
     state = node.state
     while state.result == Result.INPROGRESS:
         command = random.choice(state.commands)

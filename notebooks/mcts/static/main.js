@@ -1,16 +1,17 @@
 const MainScreen = Ractive.extend({
-  css:`
+    css: `
   @media screen and (max-width: 768px) {
   .section {
     padding:0;
   }
 }
   `,
-  template:`
+    template: `
     <NavBar readyState={{readyState}} user={{user}}/>
     
     <section class="section">
         <div class="container is-fluid">
+        <h1 class="title">Monte Carlo Tree Search algorithm, Python/Numpy/FastAPI implementation</h1>
             
             <div class="columns">
                 <div class="column is-one-third">
@@ -24,8 +25,9 @@ const MainScreen = Ractive.extend({
                     {{#if current_game}}
                         <br>
                         <div class="has-text-centered">
+
                         
-                            <h4>
+                            <h4 class = "title is-4">
                                 {{#if current_game.result=="PLAYER1"}}
                                     You win!
                                 {{/if}}
@@ -57,7 +59,10 @@ const MainScreen = Ractive.extend({
                                 />
                             {{/if}}
                             
+                            <pre>{{current_game.notes}}</pre>
                         </div>
+
+                        
                     {{/if}}
                 </div>
             </div>
@@ -65,46 +70,46 @@ const MainScreen = Ractive.extend({
     </section>
     
   `,
-  
-  oninit() {
-    const protocol = (location.protocol==="http:") ? 'ws' : 'wss';
-    const url      = `${protocol}://${location.host}/ws`;
-    
-    
-    
-    const ws       = new ReconnectingWebSocket(url, null, {debug: true, reconnectInterval: 3000});
-    this.set('ws',ws);
-    const stateChange = () => {
-        this.set('readyState', ws.readyState);
-    };
 
-    // might tighten this up even more
-    // maybe [name, arg1, arg2]
-    // e.g. ['set',path, value]
-    // or   ['push',path,value]
-    const handlers= {
-        set:(keypath,value)=>{
-            this.set(keypath,value);
-        },
-        push:(keypath,value)=>{
-            this.push(keypath,value);
-        }
-    };
-                
-    ws.onmessage = event=> {
-        const input = JSON.parse(event.data);
-        const name = input[0];
-        const args = input.slice(1);
-        if (name in handlers)
-            return handlers[name](...args);
-        else
-            console.warn(input);
-    };
-    
-    ws.onopen       = stateChange;
-    ws.onclose      = stateChange;
-    ws.onerror      = stateChange;
-    ws.onconnecting = stateChange;
-    stateChange();
-  }
+    oninit() {
+        const protocol = (location.protocol === "http:") ? 'ws' : 'wss';
+        const url = `${protocol}://${location.host}/ws`;
+
+
+
+        const ws = new ReconnectingWebSocket(url, null, { debug: true, reconnectInterval: 3000 });
+        this.set('ws', ws);
+        const stateChange = () => {
+            this.set('readyState', ws.readyState);
+        };
+
+        // might tighten this up even more
+        // maybe [name, arg1, arg2]
+        // e.g. ['set',path, value]
+        // or   ['push',path,value]
+        const handlers = {
+            set: (keypath, value) => {
+                this.set(keypath, value);
+            },
+            push: (keypath, value) => {
+                this.push(keypath, value);
+            }
+        };
+
+        ws.onmessage = event => {
+            const input = JSON.parse(event.data);
+            const name = input[0];
+            const args = input.slice(1);
+            if (name in handlers)
+                return handlers[name](...args);
+            else
+                console.warn(input);
+        };
+
+        ws.onopen = stateChange;
+        ws.onclose = stateChange;
+        ws.onerror = stateChange;
+        ws.onconnecting = stateChange;
+        stateChange();
+    }
 });

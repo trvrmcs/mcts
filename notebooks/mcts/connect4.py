@@ -12,45 +12,52 @@ SIZE = 4
 
 
 def diagonals_a(m):
-    for offset in range(-2,5):
-        d=m.diagonal(offset)
-        for l in range(0, len(d)-3):
-            yield(d[l:4+l])
+    for offset in range(-2, 5):
+        d = m.diagonal(offset)
+        for l in range(0, len(d) - 3):
+            yield (d[l : 4 + l])
+
 
 def diagonals_b(m):
-    f=np.fliplr(m)
-    for offset in range(-2,5):
-        d=f.diagonal(offset)
-        for l in range(0, len(d)-3):
-            yield(d[l:4+l])
+    f = np.fliplr(m)
+    for offset in range(-2, 5):
+        d = f.diagonal(offset)
+        for l in range(0, len(d) - 3):
+            yield (d[l : 4 + l])
+
+
 def horizontals(m):
-    
+
     # horizontals
     for i in range(4):
         for j in range(6):
-            yield m[j,i:i+4]
+            yield m[j, i : i + 4]
+
+
 def verticals(m):
-   
+
     for i in range(7):
         for j in range(3):
-            yield m[j:4+j,i]
-             
+            yield m[j : 4 + j, i]
+
+
 def all_lines(m):
     yield from diagonals_a(m)
     yield from diagonals_b(m)
     yield from horizontals(m)
     yield from verticals(m)
-    
 
-def _result(m)->Result:
+
+def _result(m) -> Result:
     # This is  3-4 times faster than my first attempt.
-    l=np.array(list(all_lines(m)))
-    
-    
-    
-    if any(l.sum(axis=1)==4):return Result.PLAYER1
-    if any(l.sum(axis=1)==-4):return Result.PLAYER2
-    if not (m == 0).any(): return Result.DRAW
+    l = np.array(list(all_lines(m)))
+
+    if any(l.sum(axis=1) == 4):
+        return Result.PLAYER1
+    if any(l.sum(axis=1) == -4):
+        return Result.PLAYER2
+    if not (m == 0).any():
+        return Result.DRAW
     return Result.INPROGRESS
 
 
@@ -65,8 +72,6 @@ class Command:
         return f"{self.column}"
 
 
- 
-
 class State:
     def __init__(self, m: Optional[np.ndarray] = None, player: Optional[Player] = None):
 
@@ -78,9 +83,9 @@ class State:
             assert player is not None
             self._m = m
             self.player = player
-         
+
         self.result = _result(self._m)
-        
+
         top_row = self._m[0]
         if self.result == Result.INPROGRESS:
             self.commands = [
@@ -90,12 +95,13 @@ class State:
             self.commands = []
 
     def __repr__(self) -> str:
-        return f"""
-            {self._m}
-            {self.player}
-            {self.result}
-            {self.commands}
-        """
+        return (
+            f"\n"
+            f"\n{self._m}"
+            f"\n{self.player}"
+            f"\n{self.result}"
+            f"\n{self.commands}"
+        )
 
     def apply(self, command: Command) -> "State":
         if self.result != Result.INPROGRESS:
@@ -116,3 +122,19 @@ class State:
         col[j] = v
 
         return State(m, other_player(self.player))
+
+
+def get_command(state: State) -> Command:
+    while True:
+        try:
+            s = input("COMMAND (column)> ")
+            column = int(s.strip())
+
+            command = Command(column)
+        except Exception as e:
+            print(f"Couldn't parse command: {e}")
+            continue
+        if command in state.commands:
+            return command
+        else:
+            print("Illegal command")
